@@ -25,4 +25,5 @@ by issuing the following request
 	http://localhost:1337?url=[url of the product page]
 
 Response:
+
 	{"rating":"2.6 ","maxRating":"5","reviews":"475"}
