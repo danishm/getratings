@@ -3,6 +3,46 @@ var http = require('http');
 var url = require('url');
 var request = require('request');
 var querystring = require("querystring");
+var fs     = require('fs');
+var jquery = fs.readFileSync("./jquery-1.7.1.min.js").toString();
+
+// Defaults
+var PORT=11000;
+
+function parseRatings(urlOrBody, siteDetails, processResult) {
+	var result={}
+	jsdom.env({
+		html: urlOrBody,
+		src: [ jquery ],
+		done: function(errors, window) {
+			var $ = window.$;
+			$(siteDetails.selector).each(function() {
+				ratingStr = $(this).text().match(siteDetails.ratingRegex)[0]
+				reviewsStr = $(this).text().match(siteDetails.reviewsRegex)[0]
+				
+				console.log(ratingStr)
+				console.log(reviewsStr)
+				reviewsStr = reviewsStr.replace(/(^\d+)(.+$)/i,'$1')
+				
+				ratingParts = ratingStr.split(siteDetails.ratingSplitter)
+				result.rating=parseFloat(ratingParts[0])
+				result.maxRating=parseFloat(ratingParts[1])
+				result.reviews=parseInt(reviewsStr)
+				
+				return false;
+			});
+			console.log(result)
+			processResult(result)
+		}
+	});
+}
+
+function appliesTo(url, siteDetails) {
+	if(url.indexOf(siteDetails.domain)!=-1)
+		return true;
+	else
+		return false;
+}
 
 /*
  --------------------------------------------------------
@@ -13,37 +53,11 @@ NewEgg = {
 	name: 'New Egg',
 	ratingRegex: /\d\/\d/,
 	reviewsRegex: /\d+\sreviews/,
+	ratingSplitter: '/',
+	selector: 'a.itmRating',
+	domain: 'newegg.com',
 	getRating: function(pageUrl, processResult) {
-		var result = {}
-		jsdom.env({
-			html: pageUrl,
-			scripts: [ 'http://code.jquery.com/jquery-1.5.min.js' ],
-			done: function(errors, window) {
-				var $ = window.$;
-				//console.log('HN Links');
-				$('a.itmRating').each(function() {
-					//console.log(' -', $(this).text());
-					ratingStr = $(this).text().match(NewEgg.ratingRegex)[0]
-					reviewsStr = $(this).text().match(NewEgg.reviewsRegex)[0].replace(/(^\d+)(.+$)/i,'$1')
-					
-					ratingParts = ratingStr.split("/")
-					console.log(ratingParts)
-					result.rating=ratingParts[0]
-					result.maxRating=ratingParts[1]
-					result.reviews=reviewsStr
-				});
-				console.log(result)
-				processResult(result)
-			}
-		});
-		
-		return result;
-	},
-	appliesTo: function(pageUrl) {
-		if(pageUrl.indexOf('newegg.com')!=-1)
-			return true;
-		else
-			return false;
+		parseRatings(pageUrl, NewEgg, processResult);
 	}
 }
 
@@ -56,39 +70,11 @@ Amazon = {
 	name: 'Amazon',
 	ratingRegex: /\d.?\d? out of \d/,
 	reviewsRegex: /\d+\scustomer\sreviews/,
+	ratingSplitter: 'out of',
+	selector: '.crAvgStars',
+	domain: 'amazon.com',
 	getRating: function(pageUrl, processResult) {
-		var result = {}
-		jsdom.env({
-			html: pageUrl,
-			scripts: [ 'http://code.jquery.com/jquery-1.5.min.js' ],
-			done: function(errors, window) {
-				var $ = window.$;
-				//console.log('HN Links');
-				$('.crAvgStars').each(function() {
-					//console.log(' -', $(this).text());
-					ratingStr = $(this).text().match(Amazon.ratingRegex)[0]
-					reviewsStr = $(this).text().match(Amazon.reviewsRegex)[0].replace(/(^\d+)(.+$)/i,'$1')
-					
-					ratingParts = ratingStr.split("out of")
-					console.log(ratingParts)
-					result.rating=ratingParts[0]
-					result.maxRating=ratingParts[1]
-					result.reviews=reviewsStr
-					
-					return false;
-				});
-				console.log(result)
-				processResult(result)
-			}
-		});
-		
-		return result;
-	},
-	appliesTo: function(pageUrl) {
-		if(pageUrl.indexOf('amazon.com')!=-1)
-			return true;
-		else
-			return false;
+		parseRatings(pageUrl, Amazon, processResult);
 	}
 }
 
@@ -102,39 +88,13 @@ BestBuy = {
 	name: 'Best Buy',
 	ratingRegex: /\d.?\d? of \d/,
 	reviewsRegex: /\d+\sreviews/,
+	ratingSplitter: ' of ',
+	selector: '.customer-reviews',
+	domain: 'bestbuy.com',
 	getRating: function getPage (pageUrl, processResult) {
-
 		request({uri: pageUrl, headers:{'User-Agent': 'Mozilla/5.0'}}, function (error, response, body) {
-		
-			jsdom.env({
-				html: body,
-				scripts: [ 'http://code.jquery.com/jquery-1.5.min.js' ],
-				done: function(errors, window) {
-					var $ = window.$;
-					result={};
-					
-					$('.customer-reviews').each(function() {
-						ratingStr = $(this).text().match(BestBuy.ratingRegex)[0]
-						reviewsStr = $(this).text().match(BestBuy.reviewsRegex)[0].replace(/(^\d+)(.+$)/i,'$1')
-						
-						ratingParts = ratingStr.split(" of ")
-						result.rating=ratingParts[0]
-						result.maxRating=ratingParts[1]
-						result.reviews=reviewsStr
-						
-						return false;
-					});
-					
-					processResult(result)
-				}
-			});
+			parseRatings(body, BestBuy, processResult);
 		});
-	},
-	appliesTo: function(pageUrl) {
-		if(pageUrl.indexOf('bestbuy.com')!=-1)
-			return true;
-		else
-			return false;
 	}
 }
 
@@ -155,24 +115,24 @@ var scrapers=[NewEgg, Amazon, BestBuy];
 http.createServer(function (req, res) {
 	
 	var params = url.parse(req.url, true).query;
-	console.log(params.url)
+	console.log('URL To Parse: ' + params.url)
 		
 	if('url' in params) {
 		var targetUrl = url.parse(params.url, true)
-		console.log(targetUrl.hostname)
 		
 		res.writeHead(200, {'Content-Type': 'text/plain'});
 		
 		for (var i in scrapers) {
 			scraper=scrapers[i];
-			console.log(scraper.name)
-			if (scraper.appliesTo(params.url)) {
+			if (appliesTo(params.url, scraper)) {
+				console.log('Domain: '+scraper.domain)
 				scraper.getRating(encodeUrl(params.url), function(result) {
 					res.write(JSON.stringify(result));
 					res.end()
+					console.log('\n--------------------------------------------\n');
 				});
 			}
 		}
 	}
-}).listen(1337);
-console.log('Server running at port 1337');
+}).listen(11000);
+console.log('Service running at port '+PORT);
