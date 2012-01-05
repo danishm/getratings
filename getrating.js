@@ -16,21 +16,27 @@ function parseRatings(urlOrBody, siteDetails, processResult) {
 		src: [ jquery ],
 		done: function(errors, window) {
 			var $ = window.$;
-			$(siteDetails.selector).each(function() {
-				ratingStr = $(this).text().match(siteDetails.ratingRegex)[0]
-				reviewsStr = $(this).text().match(siteDetails.reviewsRegex)[0]
-				
-				console.log(ratingStr)
-				console.log(reviewsStr)
-				reviewsStr = reviewsStr.replace(/(^\d+)(.+$)/i,'$1')
-				
-				ratingParts = ratingStr.split(siteDetails.ratingSplitter)
-				result.rating=parseFloat(ratingParts[0])
-				result.maxRating=parseFloat(ratingParts[1])
-				result.reviews=parseInt(reviewsStr)
-				
-				return false;
-			});
+			try {
+				$(siteDetails.selector).each(function() {
+					console.log($(this).text())
+					ratingStr = $(this).text().match(siteDetails.ratingRegex)[0]
+					reviewsStr = $(this).text().match(siteDetails.reviewsRegex)[0]
+					
+					console.log(ratingStr)
+					console.log(reviewsStr)
+					reviewsStr = reviewsStr.replace(/(^\d+)(.+$)/i,'$1')
+					
+					ratingParts = ratingStr.split(siteDetails.ratingSplitter)
+					result.rating=parseFloat(ratingParts[0])
+					result.maxRating=parseFloat(ratingParts[1])
+					result.reviews=parseInt(reviewsStr)
+					
+					return false;
+				});
+			}
+			catch(err) {
+				result={ rating:-1, maxRating:-1, reviews:-1 };
+			}
 			console.log(result)
 			processResult(result)
 		}
