@@ -9,6 +9,12 @@ var jquery = fs.readFileSync("./jquery-1.7.1.min.js").toString();
 // Defaults
 var PORT=11000;
 
+
+process.on('uncaughtException', function (err) {
+  console.log('Caught exception: ' + err);
+});
+
+
 function parseRatings(urlOrBody, siteDetails, processResult) {
 	var result={}
 	jsdom.env({
@@ -122,6 +128,7 @@ http.createServer(function (req, res) {
 	
 	var params = url.parse(req.url, true).query;
 	console.log('URL To Parse: ' + params.url)
+	console.log('Callback: ' + params.callback)
 		
 	if('url' in params) {
 		var targetUrl = url.parse(params.url, true)
@@ -133,12 +140,17 @@ http.createServer(function (req, res) {
 			if (appliesTo(params.url, scraper)) {
 				console.log('Domain: '+scraper.domain)
 				scraper.getRating(encodeUrl(params.url), function(result) {
-					res.write(JSON.stringify(result));
+					if('callback' in params) {
+						res.write(params.callback+'(\''+JSON.stringify(result)+'\')');
+					}
+					else {
+						res.write(JSON.stringify(result));
+					}
 					res.end()
 					console.log('\n--------------------------------------------\n');
 				});
 			}
 		}
 	}
-}).listen(11000);
+}).listen(PORT);
 console.log('Service running at port '+PORT);
