@@ -44,6 +44,7 @@ function parseRatings(urlOrBody, siteDetails, processResult) {
 				result={ rating:-1, maxRating:-1, reviews:-1 };
 			}
 			console.log(result)
+			window.close();
 			processResult(result)
 		}
 	});
@@ -141,7 +142,7 @@ http.createServer(function (req, res) {
 				console.log('Domain: '+scraper.domain)
 				scraper.getRating(encodeUrl(params.url), function(result) {
 					if('callback' in params) {
-						res.write(params.callback+'(\''+JSON.stringify(result)+'\')');
+						res.write(params.callback+'('+JSON.stringify(result)+')');
 					}
 					else {
 						res.write(JSON.stringify(result));
