@@ -1,0 +1,26 @@
+{
+  "name": "getratings",
+  "version": "0.1.0",
+  "description": "Service to extract user ratings from electronics product pages on popular sites",
+  "main": "getrating.js",
+  "scripts": {
+    "test": "node getratings.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danishm/getratings.git"
+  },
+  "keywords": [
+    "ratings",
+    "newegg",
+    "amazon",
+    "bestbuy",
+    "stars"
+  ],
+  "author": "Danish Mujeeb <danish.mujeeb@gmail.com>",
+  "license": "BSD",
+  "dependencies": {
+     "jsdom:": "0.2.x",
+     "request": "2.9.x"
+  }
+}
