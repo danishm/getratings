@@ -33,3 +33,10 @@ by issuing the following request
 Response:
 
 	{"rating":"2.6 ","maxRating":"5","reviews":"475"}
+
+
+### I Need Your Help
+
+I am new to Node.js and enjoying working on it. I would like my work to be accessible as many people as possible.
+If you have any suggestion or comment on how I can structure of manage this project better, please feel free to
+let me konw.
